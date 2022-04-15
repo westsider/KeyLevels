@@ -109,8 +109,9 @@ namespace NinjaTrader.NinjaScript.Indicators
 			[X] plot gx hi low
 			[X] plot open 
 			[X] plot as optional Range Hi Lo VAH VAL POC
-			[ ] Ploy Ypoc if naked 
 			[X] plot gap as box, red / green, num bars
+		fix box length
+			[ ] Ploy Ypoc if naked 
 		*/
 		
 		protected override void OnBarUpdate()
@@ -224,6 +225,10 @@ namespace NinjaTrader.NinjaScript.Indicators
 					GapLow = Close_D;
 				}
 				BoxConstructor(BoxLength: preMarketLength, BoxTopPrice: GapHigh, BottomPrice: GapLow, BoxName: "gapBox"+CurrentBar);
+				
+				if ( YesterdaysPOC > 0 ) {
+					YPOC[0] = YesterdaysPOC;
+				}
 			}
 		}
 		

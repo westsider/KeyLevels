@@ -41,6 +41,9 @@ namespace NinjaTrader.NinjaScript.Indicators
 		private double 	gxHigh = 0.0;
 	    private double  gxLow = 0.0;
 		private double  todayOpen = 0.0;
+		private double  Gap_D = 0.0;
+		private double  Close_D = 0.0;
+		private string message = "no message";
 		
 		private NinjaTrader.Gui.Tools.SimpleFont myFont = new NinjaTrader.Gui.Tools.SimpleFont("Helvetica", 12) { Size = 12, Bold = false };
 				
@@ -66,7 +69,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 				PocColor					= Brushes.Red;
 				GapUp						= Brushes.LimeGreen;
 				GapDown						= Brushes.Red;
-				RTHOpen						= DateTime.Parse("08:30", System.Globalization.CultureInfo.InvariantCulture);
+				RTHOpen						= DateTime.Parse("08:31", System.Globalization.CultureInfo.InvariantCulture);
 				RTHClose					= DateTime.Parse("15:00", System.Globalization.CultureInfo.InvariantCulture);
 				BarsRight					= 5;
 				ShowRange					= true;
@@ -118,6 +121,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 			SessionStart();
 			SessionEnd();
 			RegularSession(); 
+			Draw.TextFixed(this, "MyTextFixed", message, TextPosition.TopLeft);
 		}
 
 		private void PlotCompositeRange() {   
@@ -141,18 +145,23 @@ namespace NinjaTrader.NinjaScript.Indicators
 				rthStartBarNum = CurrentBar ;
 				gxBars = rthStartBarNum - rthEndBarNum;
 				todayOpen = Open[0];
+				Gap_D = todayOpen - Close_D;
+				Print("Close " + Close_D + " - Open "+ todayOpen);
+				message =  Time[0].ToShortDateString() + " "  + Time[0].ToShortTimeString() + "   Open: " + todayOpen.ToString() +  "   Gap: " + Gap_D.ToString();
+				
 				if ( gxBars > 0 ) {
 	                gxHigh = MAX(High, gxBars)[0];
 	                gxLow = MIN(Low, gxBars)[0];
 				}
-				Print("OPEN: " + RTHOpen + " == " +  Time[0] );
+				//Print("OPEN: " + RTHOpen + " == " +  Time[0] );
             }
 		}
 		
 		private void SessionEnd() { 
 			if (BarsInProgress == 1 && IsEqual(start: ToTime(RTHClose), end: ToTime(Time[0])) ) {
+				Close_D = Close[0];
 				rthEndBarNum = CurrentBar;
-				Print("CLOSE: " + RTHClose + " == " +  Time[0] );
+				//Print("CLOSE: " + RTHClose + " == " +  Time[0] );
 				// find RTH High + Low
 				int rthLength = rthEndBarNum - rthStartBarNum;
 				if ( rthLength > 0 ) {
@@ -212,7 +221,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 //		}
 		
 		private void LineText(string name, double price) { 
-			Draw.Text(this, name, false, name, -BarsRight, price, 0,  LineColor, myFont, TextAlignment.Center, Brushes.Transparent, LineColor, 0);
+			Draw.Text(this, name, false, name, -BarsRight, price, 0,  LineColor, myFont, TextAlignment.Left, Brushes.Transparent, LineColor, 0);
 		}
 		
 		private void CheckHolidayOrSunday() { 
@@ -224,7 +233,8 @@ namespace NinjaTrader.NinjaScript.Indicators
 				if (yDate == "Sunday" ) {
 					//Print(yDate + "  " + Time[0].ToShortDateString() );
 					sunday = true;
-					Draw.Text(this, "sunday"+prettyDate, true, yDate, 0, MAX(High, 20)[1], 1, Brushes.DarkGoldenrod, myFont, TextAlignment.Center, Brushes.Transparent, Brushes.Transparent, 50);
+					Draw.Text(this, "sunday"+prettyDate, true, yDate, 0, MAX(High, 20)[1], 1, 
+						Brushes.DarkGoldenrod, myFont, TextAlignment.Left, Brushes.Transparent, Brushes.Transparent, 50);
 				} else {
 					sunday = false;	
 				}

@@ -137,19 +137,22 @@ namespace NinjaTrader.NinjaScript.Indicators
             }
 		}
 		
-		private void RegularSession() { 
-			var Now = ToTime(Time[0]) ;
-			var StartTime = ToTime(RTHOpen);
-			var EndTime = ToTime(RTHClose);
-			if (Now > StartTime && Now < EndTime) {
+		private void RegularSession() {   
+			if (IsBetween(start: ToTime(RTHOpen), end: ToTime(RTHClose))) {
 				if (yHigh > 0.0 &&  yLow > 0.0) {
 					YHigh[0] = yHigh; 
 					YLow[0] = yLow; 					
 					LineText(name: "yh", price: yHigh);
 					LineText(name: "yl", price: yLow);
-				}
-				 
+				} 
 			}
+		}
+		
+		private bool IsBetween(int start, int end) {
+			var Now = ToTime(Time[0]) ;
+			if (Now > start && Now < end) {
+				return true;
+			} else { return false; }
 		}
 		
 		private void LineText(string name, double price) { 

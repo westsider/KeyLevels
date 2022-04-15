@@ -37,9 +37,11 @@ namespace NinjaTrader.NinjaScript.Indicators
 		private double	yHigh;
 		private double	yLow;
 		private int 	rthEndBarNum; 
+		private int 	gxBars;
+		private double 	gxHigh = 0.0;
+	    private double gxLow = 0.0;
 		private NinjaTrader.Gui.Tools.SimpleFont myFont = new NinjaTrader.Gui.Tools.SimpleFont("Helvetica", 12) { Size = 12, Bold = false };
 				
-		
 		protected override void OnStateChange()
 		{
 			if (State == State.SetDefaults)
@@ -92,13 +94,13 @@ namespace NinjaTrader.NinjaScript.Indicators
 		}
 
 		/*
-			[ ] func Session Start, 
-			[ ] func SessionEnd 
-			[ ] func RTHSessionPlots 
+			[X] func Session Start, 
+			[X] func SessionEnd 
+			[X] func RTHSessionPlots 
 			[X] func HollidayOrSunday
 			
-			[ ] plot Y hi low
-			[ ] plot gx hi low
+			[X] plot Y hi low
+			[X] plot gx hi low
 			[ ] plot open
 			[ ] inputs too
 			[ ] plot as optional Range Hi Lo VAH VAL POC
@@ -114,12 +116,17 @@ namespace NinjaTrader.NinjaScript.Indicators
 			if ( sunday  ) { return; }
 			SessionStart();
 			SessionEnd();
-			RegularSession();
+			RegularSession(); 
 		}
 
 		private void SessionStart() {  
 			if (BarsInProgress == 1 && IsEqual(start: ToTime(RTHOpen), end: ToTime(Time[0])) ) {
 				rthStartBarNum = CurrentBar ;
+				gxBars = rthStartBarNum - rthEndBarNum;
+				if ( gxBars > 0 ) {
+	                gxHigh = MAX(High, gxBars)[0];
+	                gxLow = MIN(Low, gxBars)[0];
+				}
 				Print("OPEN: " + RTHOpen + " == " +  Time[0] );
             }
 		}
@@ -145,6 +152,13 @@ namespace NinjaTrader.NinjaScript.Indicators
 					LineText(name: "yh", price: yHigh);
 					LineText(name: "yl", price: yLow);
 				} 
+				
+				if (gxHigh > 0.0 &&  gxLow > 0.0) {
+					GXHigh[0] = gxHigh; 
+					GXLow[0] = gxLow; 					
+					LineText(name: "gxH", price: gxHigh);
+					LineText(name: "gxL", price: gxLow);
+				} 
 			}
 		}
 		
@@ -161,8 +175,19 @@ namespace NinjaTrader.NinjaScript.Indicators
 			} else { return false; }
 		}
 		
+//		private void GlobexSession() { 
+//			if (IsGlobex(start: ToTime(RTHClose), end: ToTime(RTHOpen))) { 
+//			}
+//		}		
+//		private bool IsGlobex(int start, int end) {
+//			var Now = ToTime(Time[0]) ;
+//			if (Now > start || Now < end) {
+//				return true;
+//			} else { return false; }
+//		}
+		
 		private void LineText(string name, double price) { 
-			Draw.Text(this, name, false, "yh", -BarsRight, price, 0,  LineColor, myFont, TextAlignment.Center, Brushes.Transparent, LineColor, 0);
+			Draw.Text(this, name, false, name, -BarsRight, price, 0,  LineColor, myFont, TextAlignment.Center, Brushes.Transparent, LineColor, 0);
 		}
 		
 		private void CheckHolidayOrSunday() { 

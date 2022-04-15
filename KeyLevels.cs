@@ -117,15 +117,15 @@ namespace NinjaTrader.NinjaScript.Indicators
 			RegularSession();
 		}
 
-		private void SessionStart() { 
-			if (BarsInProgress == 1 && RTHOpen.ToLongTimeString() == Time[0].ToLongTimeString() ) {
+		private void SessionStart() {  
+			if (BarsInProgress == 1 && IsEqual(start: ToTime(RTHOpen), end: ToTime(Time[0])) ) {
 				rthStartBarNum = CurrentBar ;
 				Print("OPEN: " + RTHOpen + " == " +  Time[0] );
             }
 		}
 		
 		private void SessionEnd() { 
-			if (BarsInProgress == 1 && RTHClose.ToLongTimeString() == Time[0].ToLongTimeString() ) {
+			if (BarsInProgress == 1 && IsEqual(start: ToTime(RTHClose), end: ToTime(Time[0])) ) {
 				rthEndBarNum = CurrentBar;
 				Print("CLOSE: " + RTHClose + " == " +  Time[0] );
 				// find RTH High + Low
@@ -148,6 +148,12 @@ namespace NinjaTrader.NinjaScript.Indicators
 			}
 		}
 		
+		private bool IsEqual(int start, int end) {
+			if (start == end) {
+				return true;
+			} else { return false; }
+			
+		}
 		private bool IsBetween(int start, int end) {
 			var Now = ToTime(Time[0]) ;
 			if (Now > start && Now < end) {

@@ -44,6 +44,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 		private double  Gap_D = 0.0;
 		private double  Close_D = 0.0;
 		private string message = "no message";
+		private int preMarketLength = 0;
 		
 		private NinjaTrader.Gui.Tools.SimpleFont myFont = new NinjaTrader.Gui.Tools.SimpleFont("Helvetica", 12) { Size = 12, Bold = false };
 				
@@ -109,7 +110,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 			[X] plot open 
 			[X] plot as optional Range Hi Lo VAH VAL POC
 			[ ] Ploy Ypoc if naked 
-			[ ] plot gap as box, red / green, num bars
+			[X] plot gap as box, red / green, num bars
 		*/
 		
 		protected override void OnBarUpdate()
@@ -121,6 +122,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 			SessionStart();
 			SessionEnd();
 			RegularSession(); 
+			ShowPremarketGap();
 			Draw.TextFixed(this, "MyTextFixed", message, TextPosition.TopLeft);
 		}
 
@@ -161,6 +163,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 			if (BarsInProgress == 1 && IsEqual(start: ToTime(RTHClose), end: ToTime(Time[0])) ) {
 				Close_D = Close[0];
 				rthEndBarNum = CurrentBar;
+				preMarketLength = 0;
 				//Print("CLOSE: " + RTHClose + " == " +  Time[0] );
 				// find RTH High + Low
 				int rthLength = rthEndBarNum - rthStartBarNum;
@@ -209,6 +212,31 @@ namespace NinjaTrader.NinjaScript.Indicators
 			} else { return false; }
 		}
 		
+		private void ShowPremarketGap() {  
+			if (IsBetween(start: ToTime(RTHOpen) -10000, end: ToTime(RTHOpen))) { 
+				double GapHigh = 0.0;
+				double	GapLow = 0.0;
+				
+				if ( BarsInProgress == 1 ) {
+					Gap_D = Close[0] - Close_D;
+					preMarketLength += 1;
+					GapHigh = Close[0];
+					GapLow = Close_D;
+				}
+				BoxConstructor(BoxLength: preMarketLength, BoxTopPrice: GapHigh, BottomPrice: GapLow, BoxName: "gapBox"+CurrentBar);
+			}
+		}
+		
+		private void BoxConstructor(int BoxLength, double BoxTopPrice, double BottomPrice, string BoxName) {
+			if ( BoxLength < 2 || BoxTopPrice == 0.0 || BottomPrice == 0.0) { return; }
+			Print("BoxLength " + BoxLength + "  BoxTopPrice " + BoxTopPrice + "  BottomPrice " + BottomPrice );
+			Brush	BoxColor = GapDown;
+			if ( Gap_D > 0 ) {
+				BoxColor = GapUp;
+			}
+			RemoveDrawObject( "gapBox"+ lastBar);
+			Draw.Rectangle(this, BoxName, false, BoxLength, BottomPrice, -2, BoxTopPrice, BoxColor, Brushes.Transparent, 100);
+		}
 //		private void GlobexSession() { 
 //			if (IsGlobex(start: ToTime(RTHClose), end: ToTime(RTHOpen))) { 
 //			}

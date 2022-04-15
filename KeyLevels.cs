@@ -39,7 +39,9 @@ namespace NinjaTrader.NinjaScript.Indicators
 		private int 	rthEndBarNum; 
 		private int 	gxBars;
 		private double 	gxHigh = 0.0;
-	    private double gxLow = 0.0;
+	    private double  gxLow = 0.0;
+		private double  todayOpen = 0.0;
+		
 		private NinjaTrader.Gui.Tools.SimpleFont myFont = new NinjaTrader.Gui.Tools.SimpleFont("Helvetica", 12) { Size = 12, Bold = false };
 				
 		protected override void OnStateChange()
@@ -60,31 +62,31 @@ namespace NinjaTrader.NinjaScript.Indicators
 				//See Help Guide for additional information.
 				IsSuspendedWhileInactive					= true;
 				LineColor					= Brushes.DimGray;
-				VAColor					= Brushes.DodgerBlue;
+				VAColor						= Brushes.SkyBlue;
 				PocColor					= Brushes.Red;
-				GapUp					= Brushes.LimeGreen;
-				GapDown					= Brushes.Red;
+				GapUp						= Brushes.LimeGreen;
+				GapDown						= Brushes.Red;
 				RTHOpen						= DateTime.Parse("08:30", System.Globalization.CultureInfo.InvariantCulture);
-				RTHClose						= DateTime.Parse("15:00", System.Globalization.CultureInfo.InvariantCulture);
+				RTHClose					= DateTime.Parse("15:00", System.Globalization.CultureInfo.InvariantCulture);
 				BarsRight					= 5;
 				ShowRange					= true;
-				RangeHighLevel					= 4000;
-				RangeLowLevel					= 4000;
-				RangePOCLevel					= 4000;
-				RangeVAHLevel					= 4000;
-				RangeVALLevel					= 4000;
-				YesterdaysPOC					= 4000;
-				AddPlot(Brushes.DimGray, "YHigh");
-				AddPlot(Brushes.DimGray, "YLow");
-				AddPlot(Brushes.DimGray, "OpenLine");
-				AddPlot(Brushes.DimGray, "GXHigh");
-				AddPlot(Brushes.DimGray, "GXLow");
-				AddPlot(Brushes.Orange, "RangeHigh");
-				AddPlot(Brushes.Orange, "RangeLow");
-				AddPlot(Brushes.Orange, "RangePOC");
-				AddPlot(Brushes.Orange, "RangeVAH");
-				AddPlot(Brushes.Orange, "RangeVAL");
-				AddPlot(Brushes.Orange, "YPOC");
+				RangeHighLevel					= 4420;
+				RangeVAHLevel					= 4415;
+				RangePOCLevel					= 4410;
+				RangeVALLevel					= 4400;
+				RangeLowLevel					= 4395;
+				YesterdaysPOC					= 4420;
+				AddPlot(LineColor, "YHigh");
+				AddPlot(LineColor, "YLow");
+				AddPlot(LineColor, "OpenLine");
+				AddPlot(LineColor, "GXHigh");
+				AddPlot(LineColor, "GXLow");
+				AddPlot(VAColor, "RangeHigh");
+				AddPlot(VAColor, "RangeLow");
+				AddPlot(PocColor, "RangePOC");
+				AddPlot(VAColor, "RangeVAH");
+				AddPlot(VAColor, "RangeVAL");
+				AddPlot(PocColor, "YPOC");
 			}
 			else if (State == State.Configure)
 			{
@@ -101,9 +103,8 @@ namespace NinjaTrader.NinjaScript.Indicators
 			
 			[X] plot Y hi low
 			[X] plot gx hi low
-			[ ] plot open
-			[ ] inputs too
-			[ ] plot as optional Range Hi Lo VAH VAL POC
+			[X] plot open 
+			[X] plot as optional Range Hi Lo VAH VAL POC
 			[ ] Ploy Ypoc if naked 
 			[ ] plot gap as box, red / green, num bars
 		*/
@@ -119,10 +120,27 @@ namespace NinjaTrader.NinjaScript.Indicators
 			RegularSession(); 
 		}
 
+		private void PlotCompositeRange() {   
+			if ( ShowRange ) {
+				RangeHigh[0] = RangeHighLevel;
+				RangeLow[0] = RangeLowLevel;
+				RangePOC[0] = RangePOCLevel;
+				RangeVAH[0] = RangeVAHLevel;
+				RangeVAL[0] = RangeVALLevel;
+				
+				LineText(name: "range h", price: RangeHighLevel);
+				LineText(name: "range l", price: RangeLowLevel);
+				LineText(name: "range poc", price: RangePOCLevel);
+				LineText(name: "range vah", price: RangeVAHLevel);
+				LineText(name: "range val", price: RangeVALLevel);
+			}
+		}
+		
 		private void SessionStart() {  
 			if (BarsInProgress == 1 && IsEqual(start: ToTime(RTHOpen), end: ToTime(Time[0])) ) {
 				rthStartBarNum = CurrentBar ;
 				gxBars = rthStartBarNum - rthEndBarNum;
+				todayOpen = Open[0];
 				if ( gxBars > 0 ) {
 	                gxHigh = MAX(High, gxBars)[0];
 	                gxLow = MIN(Low, gxBars)[0];
@@ -159,6 +177,13 @@ namespace NinjaTrader.NinjaScript.Indicators
 					LineText(name: "gxH", price: gxHigh);
 					LineText(name: "gxL", price: gxLow);
 				} 
+				
+				if (todayOpen > 0.0 ) {
+					OpenLine[0] = todayOpen;   					
+					LineText(name: "open", price: todayOpen); 
+				} 
+				
+				PlotCompositeRange();
 			}
 		}
 		
@@ -231,7 +256,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 		#region Properties
 		[NinjaScriptProperty]
 		[XmlIgnore]
-		[Display(Name="LineColor", Order=1, GroupName="Parameters")]
+		[Display(Name="Line Color", Order=1, GroupName="Parameters")]
 		public Brush LineColor
 		{ get; set; }
 
@@ -244,7 +269,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 
 		[NinjaScriptProperty]
 		[XmlIgnore]
-		[Display(Name="VAColor", Order=2, GroupName="Parameters")]
+		[Display(Name="VA Color", Order=2, GroupName="Parameters")]
 		public Brush VAColor
 		{ get; set; }
 
@@ -257,7 +282,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 
 		[NinjaScriptProperty]
 		[XmlIgnore]
-		[Display(Name="PocColor", Order=3, GroupName="Parameters")]
+		[Display(Name="POC Color", Order=3, GroupName="Parameters")]
 		public Brush PocColor
 		{ get; set; }
 
@@ -270,7 +295,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 
 		[NinjaScriptProperty]
 		[XmlIgnore]
-		[Display(Name="GapUp", Order=4, GroupName="Parameters")]
+		[Display(Name="Gap Up Color", Order=4, GroupName="Parameters")]
 		public Brush GapUp
 		{ get; set; }
 
@@ -283,7 +308,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 
 		[NinjaScriptProperty]
 		[XmlIgnore]
-		[Display(Name="GapDown", Order=5, GroupName="Parameters")]
+		[Display(Name="Gap Down Color", Order=5, GroupName="Parameters")]
 		public Brush GapDown
 		{ get; set; }
 
@@ -296,60 +321,61 @@ namespace NinjaTrader.NinjaScript.Indicators
 
 		[NinjaScriptProperty]
 		[PropertyEditor("NinjaTrader.Gui.Tools.TimeEditorKey")]
-		[Display(Name="RTHOpen", Order=6, GroupName="Parameters")]
+		[Display(Name="RTH Open", Order=6, GroupName="Parameters")]
 		public DateTime RTHOpen
 		{ get; set; }
 
 		[NinjaScriptProperty]
 		[PropertyEditor("NinjaTrader.Gui.Tools.TimeEditorKey")]
-		[Display(Name="RTHClose", Order=7, GroupName="Parameters")]
+		[Display(Name="RTH Close", Order=7, GroupName="Parameters")]
 		public DateTime RTHClose
 		{ get; set; }
 
 		[NinjaScriptProperty]
 		[Range(1, int.MaxValue)]
-		[Display(Name="BarsRight", Order=8, GroupName="Parameters")]
+		[Display(Name="Bars Right", Order=8, GroupName="Parameters")]
 		public int BarsRight
 		{ get; set; }
 
 		[NinjaScriptProperty]
-		[Display(Name="ShowRange", Order=9, GroupName="Parameters")]
+		[Display(Name="Show Composite Levels", Order=9, GroupName="Composite Levels")]
 		public bool ShowRange
 		{ get; set; }
 
 		[NinjaScriptProperty]
 		[Range(1, double.MaxValue)]
-		[Display(Name="RangeHighLevel", Order=10, GroupName="Parameters")]
+		[Display(Name="Range High Level", Order=10, GroupName="Composite Levels")]
 		public double RangeHighLevel
 		{ get; set; }
 
+		
 		[NinjaScriptProperty]
 		[Range(1, double.MaxValue)]
-		[Display(Name="RangeLowLevel", Order=11, GroupName="Parameters")]
+		[Display(Name="Range Low Level", Order=11, GroupName="Composite Levels")]
 		public double RangeLowLevel
 		{ get; set; }
 
 		[NinjaScriptProperty]
 		[Range(1, double.MaxValue)]
-		[Display(Name="RangePOCLevel", Order=12, GroupName="Parameters")]
+		[Display(Name="Range POC Level", Order=12, GroupName="Composite Levels")]
 		public double RangePOCLevel
 		{ get; set; }
 
 		[NinjaScriptProperty]
 		[Range(1, double.MaxValue)]
-		[Display(Name="RangeVAHLevel", Order=13, GroupName="Parameters")]
+		[Display(Name="Range VAH Level", Order=13, GroupName="Composite Levels")]
 		public double RangeVAHLevel
 		{ get; set; }
 
 		[NinjaScriptProperty]
 		[Range(1, double.MaxValue)]
-		[Display(Name="RangeVALLevel", Order=14, GroupName="Parameters")]
+		[Display(Name="Range VAL Level", Order=14, GroupName="Composite Levels")]
 		public double RangeVALLevel
 		{ get; set; }
 
 		[NinjaScriptProperty]
 		[Range(1, double.MaxValue)]
-		[Display(Name="YesterdaysPOC", Order=15, GroupName="Parameters")]
+		[Display(Name="Yesterdays POC", Order=15, GroupName="Composite Levels")]
 		public double YesterdaysPOC
 		{ get; set; }
 

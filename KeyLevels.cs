@@ -151,7 +151,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 				todayOpen = Open[0];
 				Gap_D = todayOpen - Close_D;
 				Print("Close " + Close_D + " - Open "+ todayOpen);
-				message =  Time[0].ToShortDateString() + " "  + Time[0].ToShortTimeString() + "   Gap: " + Gap_D.ToString();
+				message =  Time[0].ToShortDateString() + " "  + Time[0].ToShortTimeString();
 				
 				if ( gxBars > 0 ) {
 	                gxHigh = MAX(High, gxBars)[0];
@@ -225,7 +225,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 					GapHigh = Close[0];
 					GapLow = Close_D;
 				}
-				BoxConstructor(BoxLength: preMarketLength, BoxTopPrice: GapHigh, BottomPrice: GapLow, BoxName: "gapBox"+CurrentBar);
+				BoxConstructor(BoxLength: preMarketLength, BoxTopPrice: GapHigh, BottomPrice: GapLow, BoxName: "gapBox");
 				
 				if ( YesterdaysPOC > 0 ) {
 					YPOC[0] = YesterdaysPOC;
@@ -237,14 +237,18 @@ namespace NinjaTrader.NinjaScript.Indicators
 		private void BoxConstructor(int BoxLength, double BoxTopPrice, double BottomPrice, string BoxName) {
 			if ( BoxLength < 2 || BoxTopPrice == 0.0 || BottomPrice == 0.0) { return; }
 			if ( BoxLength > MaxGapBoxSize ) { BoxLength = MaxGapBoxSize; }
-			
+			double spacer = TickSize;
 			Print("BoxLength " + BoxLength + "  BoxTopPrice " + BoxTopPrice + "  BottomPrice " + BottomPrice );
 			Brush	BoxColor = GapDown;
 			if ( Gap_D > 0 ) {
 				BoxColor = GapUp;
+				spacer = -TickSize;
 			}
-			RemoveDrawObject( "gapBox"+ lastBar);
-			Draw.Rectangle(this, BoxName, false, BoxLength, BottomPrice, 2, BoxTopPrice, BoxColor, Brushes.Transparent, 100);
+			RemoveDrawObject(BoxName + lastBar);
+			RemoveDrawObject(BoxName+ "Txt" + lastBar);
+			Draw.Rectangle(this, BoxName + CurrentBar, false, BoxLength, BottomPrice, 2, BoxTopPrice, Brushes.Transparent, BoxColor, 15);
+			Draw.Text(this, BoxName + "Txt" + CurrentBar, false, Gap_D.ToString(), BoxLength, BoxTopPrice + spacer, 0,  BoxColor, myFont, TextAlignment.Left, Brushes.Transparent, BoxColor, 0);
+		
 		}
 //		private void GlobexSession() { 
 //			if (IsGlobex(start: ToTime(RTHClose), end: ToTime(RTHOpen))) { 

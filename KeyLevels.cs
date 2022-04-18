@@ -150,7 +150,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 				gxBars = rthStartBarNum - rthEndBarNum;
 				todayOpen = Open[0];
 				Gap_D = todayOpen - Close_D;
-				Print("Close " + Close_D + " - Open "+ todayOpen);
+				//Print("Close " + Close_D + " - Open "+ todayOpen);
 				message =  Time[0].ToShortDateString() + " "  + Time[0].ToShortTimeString();
 				
 				if ( gxBars > 0 ) {
@@ -238,7 +238,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 			if ( BoxLength < 2 || BoxTopPrice == 0.0 || BottomPrice == 0.0) { return; }
 			if ( BoxLength > MaxGapBoxSize ) { BoxLength = MaxGapBoxSize; }
 			double spacer = TickSize;
-			Print("BoxLength " + BoxLength + "  BoxTopPrice " + BoxTopPrice + "  BottomPrice " + BottomPrice );
+			//Print("BoxLength " + BoxLength + "  BoxTopPrice " + BoxTopPrice + "  BottomPrice " + BottomPrice );
 			Brush	BoxColor = GapDown;
 			if ( Gap_D > 0 ) {
 				BoxColor = GapUp;
@@ -266,13 +266,11 @@ namespace NinjaTrader.NinjaScript.Indicators
 		}
 		
 		private void CheckHolidayOrSunday() { 
-			if (Bars.IsFirstBarOfSession) {
-				//NinjaTrader.Gui.Tools.SimpleFont myFont = new NinjaTrader.Gui.Tools.SimpleFont("Helvetica", 18) { Size = 18, Bold = false };
+			if (IsBetween(start: ToTime(RTHOpen) -10000, end: ToTime(RTHOpen) -5000)) {  
 				DateTime myDate = Time[0];   
 				string prettyDate = myDate.ToString("MM/d/yyyy");
 				yDate = Time[0].DayOfWeek.ToString();
-				if (yDate == "Sunday" ) {
-					//Print(yDate + "  " + Time[0].ToShortDateString() );
+				if (yDate == "Sunday" ) { 
 					sunday = true;
 					Draw.Text(this, "sunday"+prettyDate, true, yDate, 0, MAX(High, 20)[1], 1, 
 						Brushes.DarkGoldenrod, myFont, TextAlignment.Left, Brushes.Transparent, Brushes.Transparent, 50);
@@ -281,7 +279,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 				}
 			}
 			
-			//MARK: - TODO - Holiday doesnt prinnt anything
+			//MARK: - TODO - Holiday doesnt print anything
 			/*
 			foreach(KeyValuePair<DateTime, string> holiday in TradingHours.Holidays)
 			{

@@ -46,6 +46,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 		private string 	message = "no message";
 		private int 	preMarketLength = 0;
 		private int 	MaxGapBoxSize = 10;
+		private bool 	showKeyLevels = false;
 		
 		private NinjaTrader.Gui.Tools.SimpleFont myFont = new NinjaTrader.Gui.Tools.SimpleFont("Helvetica", 12) { Size = 12, Bold = false };
 				
@@ -120,7 +121,8 @@ namespace NinjaTrader.NinjaScript.Indicators
 			if (CurrentBar < 20 ) { return; }
 			lastBar = CurrentBar - 1;
 			CheckHolidayOrSunday();
-			if ( sunday  ) { return; }
+			checkDaysAgo();
+			if ( sunday || !showKeyLevels ) { return; }
 			SessionStart();
 			SessionEnd();
 			RegularSession(); 
@@ -198,6 +200,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 				} 
 				
 				PlotCompositeRange();
+				message =  Time[0].ToShortDateString() + " "  + Time[0].ToShortTimeString();
 			}
 		}
 		
@@ -265,8 +268,28 @@ namespace NinjaTrader.NinjaScript.Indicators
 			Draw.Text(this, name, false, name, -BarsRight, price, 0,  LineColor, myFont, TextAlignment.Left, Brushes.Transparent, LineColor, 0);
 		}
 		
+		private void checkDaysAgo() {
+			// only show open line starting 5 days ago  
+			if (BarsInProgress == 1 && IsEqual(start: ToTime(RTHOpen), end: ToTime(Time[0])) ) {
+				//Print("inside check days "  + "  " + ToTime(Time[0]));
+		        // Get the current DateTime.
+		        DateTime now = DateTime.Now;
+				DateTime startDTE = now.AddDays(-7);
+		        // Get the TimeSpan of the difference.
+		        TimeSpan elapsed = now.Subtract(startDTE);
+		        // Get number of days ago.
+		        double daysAgo = elapsed.TotalDays; 
+				//Print("Int chart time " + ToDay(Time[0]) + " now int " + ToDay(startDTE)); 
+				if ( ToDay(Time[0])  > ToDay(startDTE) ) {
+					//Print("\n"+Time[0] + " is greater than 5 days ago");
+					showKeyLevels = true;
+				}
+			}
+		}
+		
 		private void CheckHolidayOrSunday() { 
-			if (IsBetween(start: ToTime(RTHOpen) -10000, end: ToTime(RTHOpen) -5000)) {  
+			// bettwee sunday ope 1 pm CST and 6:30 AM CST -> check if its sunday
+			if (IsBetween(start: ToTime(RTHClose) -20000, end: ToTime(RTHOpen)-20000)) {  
 				DateTime myDate = Time[0];   
 				string prettyDate = myDate.ToString("MM/d/yyyy");
 				yDate = Time[0].DayOfWeek.ToString();

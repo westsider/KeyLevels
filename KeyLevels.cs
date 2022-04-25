@@ -47,6 +47,10 @@ namespace NinjaTrader.NinjaScript.Indicators
 		private int 	preMarketLength = 0;
 		private int 	MaxGapBoxSize = 10;
 		private bool 	showKeyLevels = false;
+		private int 	IBLength = 0;
+		private double ibigh = 0.0;
+	    private double ibLow = 0.0;
+		
 		
 		private NinjaTrader.Gui.Tools.SimpleFont myFont = new NinjaTrader.Gui.Tools.SimpleFont("Helvetica", 12) { Size = 12, Bold = false };
 				
@@ -93,6 +97,8 @@ namespace NinjaTrader.NinjaScript.Indicators
 				AddPlot(VAColor, "RangeVAH");
 				AddPlot(VAColor, "RangeVAL");
 				AddPlot(PocColor, "YPOC");
+				AddPlot(PocColor, "IBHigh");
+				AddPlot(PocColor, "IBLow");
 			}
 			else if (State == State.Configure)
 			{
@@ -100,21 +106,6 @@ namespace NinjaTrader.NinjaScript.Indicators
 				ClearOutputWindow();
 			}
 		}
-
-		/*
-			[X] func Session Start, 
-			[X] func SessionEnd 
-			[X] func RTHSessionPlots 
-			[X] func HollidayOrSunday
-			
-			[X] plot Y hi low
-			[X] plot gx hi low
-			[X] plot open 
-			[X] plot as optional Range Hi Lo VAH VAL POC
-			[X] plot gap as box, red / green, num bars
-		fix box length
-			[ ] Ploy Ypoc if naked 
-		*/
 		
 		protected override void OnBarUpdate()
 		{
@@ -127,6 +118,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 			SessionEnd();
 			RegularSession(); 
 			ShowPremarketGap();
+			 InitialBalance();
 			Draw.TextFixed(this, "MyTextFixed", message, TextPosition.TopLeft);
 		}
 
@@ -204,6 +196,23 @@ namespace NinjaTrader.NinjaScript.Indicators
 			}
 		}
 		
+		private void InitialBalance() {  
+			
+			if (BarsInProgress == 1 && IsEqual(start: ToTime(RTHOpen) +10000, end: ToTime(Time[0])) ) {
+				IBLength += CurrentBar - rthStartBarNum;
+				Print("IB Close " + Time[0] + " bars " + IBLength);
+				ibigh = MAX(High, IBLength)[0];
+	            ibLow = MIN(Low, IBLength)[0];
+			}
+			if (IsBetween(start: ToTime(RTHOpen) +10000, end: ToTime(RTHClose))) {
+				//Draw.Text(this, "MyText"+CurrentBar, "-", 0, ibigh, Brushes.Blue);
+				IBHigh[0] = ibigh;
+				IBLow[0] = ibLow;
+				LineText(name: "ibH", price: ibigh);
+					LineText(name: "ibL", price: ibLow);
+			}
+		}
+				
 		private bool IsEqual(int start, int end) {
 			if (start == end) {
 				return true;
@@ -217,8 +226,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 			} else { return false; }
 		}
 		
-		private void ShowPremarketGap() {  
-			Print(ToTime(RTHOpen) -10000);
+		private void ShowPremarketGap() {   
 			if (IsBetween(start: ToTime(RTHOpen) -20000, end: ToTime(RTHOpen))) { 
 				double GapHigh = 0.0;
 				double	GapLow = 0.0;
@@ -254,17 +262,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 			Draw.Text(this, BoxName + "Txt" + CurrentBar, false, Gap_D.ToString(), BoxLength, BoxTopPrice + spacer, 0,  BoxColor, myFont, TextAlignment.Left, Brushes.Transparent, BoxColor, 0);
 		
 		}
-//		private void GlobexSession() { 
-//			if (IsGlobex(start: ToTime(RTHClose), end: ToTime(RTHOpen))) { 
-//			}
-//		}		
-//		private bool IsGlobex(int start, int end) {
-//			var Now = ToTime(Time[0]) ;
-//			if (Now > start || Now < end) {
-//				return true;
-//			} else { return false; }
-//		}
-		
+
 		private void LineText(string name, double price) { 
 			Draw.Text(this, name, false, name, -BarsRight, price, 0,  LineColor, myFont, TextAlignment.Left, Brushes.Transparent, LineColor, 0);
 		}
@@ -528,6 +526,21 @@ namespace NinjaTrader.NinjaScript.Indicators
 		{
 			get { return Values[10]; }
 		}
+		
+		[Browsable(false)]
+		[XmlIgnore]
+		public Series<double> IBHigh
+		{
+			get { return Values[11]; }
+		}
+
+		[Browsable(false)]
+		[XmlIgnore]
+		public Series<double> IBLow
+		{
+			get { return Values[12]; }
+		}
+		
 		#endregion
 
 	}

@@ -218,7 +218,8 @@ namespace NinjaTrader.NinjaScript.Indicators
 		}
 		
 		private void ShowPremarketGap() {  
-			if (IsBetween(start: ToTime(RTHOpen) -10000, end: ToTime(RTHOpen))) { 
+			Print(ToTime(RTHOpen) -10000);
+			if (IsBetween(start: ToTime(RTHOpen) -20000, end: ToTime(RTHOpen))) { 
 				double GapHigh = 0.0;
 				double	GapLow = 0.0;
 				

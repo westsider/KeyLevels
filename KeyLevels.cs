@@ -40,6 +40,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 		private int 	gxBars;
 		private double 	gxHigh = 0.0;
 	    private double  gxLow = 0.0;
+		private double 	gxMid = 0.0;
 		private double  todayOpen = 0.0;
 		private double  Gap_D = 0.0;
 		private double  Close_D = 0.0;
@@ -98,7 +99,8 @@ namespace NinjaTrader.NinjaScript.Indicators
 				AddPlot(VAColor, "RangeVAL");
 				AddPlot(PocColor, "YPOC");
 				AddPlot(PocColor, "IBHigh");
-				AddPlot(PocColor, "IBLow");
+				AddPlot(PocColor, "IBLow"); 
+				AddPlot(PocColor, "GXMid"); 
 			}
 			else if (State == State.Configure)
 			{
@@ -118,7 +120,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 			SessionEnd();
 			RegularSession(); 
 			ShowPremarketGap();
-			 InitialBalance();
+			InitialBalance();
 			Draw.TextFixed(this, "MyTextFixed", message, TextPosition.TopLeft);
 		}
 
@@ -150,8 +152,9 @@ namespace NinjaTrader.NinjaScript.Indicators
 				if ( gxBars > 0 ) {
 	                gxHigh = MAX(High, gxBars)[0];
 	                gxLow = MIN(Low, gxBars)[0];
-				}
-				//Print("OPEN: " + RTHOpen + " == " +  Time[0] );
+					gxMid = ((gxHigh - gxLow) * 0.5) + gxLow;
+					Print("GXHigh: " + gxHigh + "" + " GXLow: " + gxLow + " GXMid: " + gxMid);
+				} 
             }
 		}
 		
@@ -159,8 +162,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 			if (BarsInProgress == 1 && IsEqual(start: ToTime(RTHClose), end: ToTime(Time[0])) ) {
 				Close_D = Close[0];
 				rthEndBarNum = CurrentBar;
-				preMarketLength = 0;
-				//Print("CLOSE: " + RTHClose + " == " +  Time[0] );
+				preMarketLength = 0; 
 				// find RTH High + Low
 				int rthLength = rthEndBarNum - rthStartBarNum;
 				if ( rthLength > 0 ) {
@@ -181,9 +183,11 @@ namespace NinjaTrader.NinjaScript.Indicators
 				
 				if (gxHigh > 0.0 &&  gxLow > 0.0) {
 					GXHigh[0] = gxHigh; 
-					GXLow[0] = gxLow; 					
+					GXLow[0] = gxLow; 
+					GXMid[0] = gxMid;
 					LineText(name: "gxH", price: gxHigh);
 					LineText(name: "gxL", price: gxLow);
+					LineText(name: "gxMid", price: gxMid);
 				} 
 				
 				if (todayOpen > 0.0 ) {
@@ -199,17 +203,16 @@ namespace NinjaTrader.NinjaScript.Indicators
 		private void InitialBalance() {  
 			
 			if (BarsInProgress == 1 && IsEqual(start: ToTime(RTHOpen) +10000, end: ToTime(Time[0])) ) {
-				IBLength += CurrentBar - rthStartBarNum;
-				Print("IB Close " + Time[0] + " bars " + IBLength);
+				IBLength += CurrentBar - rthStartBarNum; 
 				ibigh = MAX(High, IBLength)[0];
-	            ibLow = MIN(Low, IBLength)[0];
+	            ibLow = MIN(Low, IBLength)[0]; 
 			}
 			if (IsBetween(start: ToTime(RTHOpen) +10000, end: ToTime(RTHClose))) {
 				//Draw.Text(this, "MyText"+CurrentBar, "-", 0, ibigh, Brushes.Blue);
 				IBHigh[0] = ibigh;
-				IBLow[0] = ibLow;
+				IBLow[0] = ibLow; 			
 				LineText(name: "ibH", price: ibigh);
-					LineText(name: "ibL", price: ibLow);
+				LineText(name: "ibL", price: ibLow); 
 			}
 		}
 				
@@ -539,6 +542,13 @@ namespace NinjaTrader.NinjaScript.Indicators
 		public Series<double> IBLow
 		{
 			get { return Values[12]; }
+		}
+		
+		[Browsable(false)]
+		[XmlIgnore]
+		public Series<double> GXMid
+		{
+			get { return Values[13]; }
 		}
 		
 		#endregion

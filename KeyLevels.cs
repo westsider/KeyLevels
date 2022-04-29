@@ -51,7 +51,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 		private int 	IBLength = 0;
 		private double ibigh = 0.0;
 	    private double ibLow = 0.0;
-		
+		private bool 	RTHchart = false;
 		
 		private NinjaTrader.Gui.Tools.SimpleFont myFont = new NinjaTrader.Gui.Tools.SimpleFont("Helvetica", 12) { Size = 12, Bold = false };
 				
@@ -122,6 +122,8 @@ namespace NinjaTrader.NinjaScript.Indicators
 			ShowPremarketGap();
 			InitialBalance();
 			Draw.TextFixed(this, "MyTextFixed", message, TextPosition.TopLeft);
+			
+			
 		}
 
 		private void PlotCompositeRange() {   
@@ -152,9 +154,28 @@ namespace NinjaTrader.NinjaScript.Indicators
 				if ( gxBars > 0 ) {
 	                gxHigh = MAX(High, gxBars)[0];
 	                gxLow = MIN(Low, gxBars)[0];
-					gxMid = ((gxHigh - gxLow) * 0.5) + gxLow;
-					Print("GXHigh: " + gxHigh + "" + " GXLow: " + gxLow + " GXMid: " + gxMid);
+					gxMid = ((gxHigh - gxLow) * 0.5) + gxLow; 
 				} 
+				
+				for (int i = 0; i < TradingHours.Sessions.Count; i++)
+				{
+				  Print(String.Format("Session {0}: {1} at {2} to {3} at {4}", i, 
+					TradingHours.Sessions[i].BeginDay, 
+					TradingHours.Sessions[i].BeginTime,
+				    TradingHours.Sessions[i].EndDay, 
+					TradingHours.Sessions[i].EndTime));
+					
+					int BeginTimey = TradingHours.Sessions[i].BeginTime;
+					if (BeginTimey == 1700) {
+						Print("24 hr chart!");
+						RTHchart = false;
+					}
+					
+					if (BeginTimey == 830) {
+						Print("RTH chart!");
+						RTHchart = true;
+					}
+				}
             }
 		}
 		
@@ -181,7 +202,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 					LineText(name: "yl", price: yLow);
 				} 
 				
-				if (gxHigh > 0.0 &&  gxLow > 0.0) {
+				if (gxHigh > 0.0 &&  gxLow > 0.0 && !RTHchart) {
 					GXHigh[0] = gxHigh; 
 					GXLow[0] = gxLow; 
 					GXMid[0] = gxMid;

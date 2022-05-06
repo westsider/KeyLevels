@@ -1,4 +1,4 @@
-#region Using declarations
+ #region Using declarations
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -52,6 +52,8 @@ namespace NinjaTrader.NinjaScript.Indicators
 		private double ibigh = 0.0;
 	    private double ibLow = 0.0;
 		private bool 	RTHchart = false;
+		private double	rthHigh = 0.0;
+	    private double 	rthLow = 0.0;
 		
 		private NinjaTrader.Gui.Tools.SimpleFont myFont = new NinjaTrader.Gui.Tools.SimpleFont("Helvetica", 12) { Size = 12, Bold = false };
 				
@@ -87,6 +89,11 @@ namespace NinjaTrader.NinjaScript.Indicators
 				RangeVALLevel					= 4400;
 				RangeLowLevel					= 4395;
 				YesterdaysPOC					= 4420;
+				DailyHighAlert 					= true;
+				NewHighSound 					= "NewHigh";
+				NewLowSound 					= "NewLow";
+				LoadDaysAgo						= 3;
+				
 				AddPlot(LineColor, "YHigh");
 				AddPlot(LineColor, "YLow");
 				AddPlot(LineColor, "OpenLine");
@@ -122,8 +129,6 @@ namespace NinjaTrader.NinjaScript.Indicators
 			ShowPremarketGap();
 			InitialBalance();
 			Draw.TextFixed(this, "MyTextFixed", message, TextPosition.TopLeft);
-			
-			
 		}
 
 		private void PlotCompositeRange() {   
@@ -147,8 +152,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 				rthStartBarNum = CurrentBar ;
 				gxBars = rthStartBarNum - rthEndBarNum;
 				todayOpen = Open[0];
-				Gap_D = todayOpen - Close_D;
-				//Print("Close " + Close_D + " - Open "+ todayOpen);
+				Gap_D = todayOpen - Close_D; 
 				message =  Time[0].ToShortDateString() + " "  + Time[0].ToShortTimeString();
 				
 				if ( gxBars > 0 ) {
@@ -158,21 +162,12 @@ namespace NinjaTrader.NinjaScript.Indicators
 				} 
 				
 				for (int i = 0; i < TradingHours.Sessions.Count; i++)
-				{
-				  Print(String.Format("Session {0}: {1} at {2} to {3} at {4}", i, 
-					TradingHours.Sessions[i].BeginDay, 
-					TradingHours.Sessions[i].BeginTime,
-				    TradingHours.Sessions[i].EndDay, 
-					TradingHours.Sessions[i].EndTime));
-					
+				{ 					
 					int BeginTimey = TradingHours.Sessions[i].BeginTime;
-					if (BeginTimey == 1700) {
-						Print("24 hr chart!");
+					if (BeginTimey == 1700) { 
 						RTHchart = false;
-					}
-					
-					if (BeginTimey == 830) {
-						Print("RTH chart!");
+					} 
+					if (BeginTimey == 830) { 
 						RTHchart = true;
 					}
 				}
@@ -218,6 +213,35 @@ namespace NinjaTrader.NinjaScript.Indicators
 				
 				PlotCompositeRange();
 				message =  Time[0].ToShortDateString() + " "  + Time[0].ToShortTimeString();
+				RTHrange();
+			}
+		}
+		 
+		private void RTHrange() {  
+			// only alert 20 mins after open to close
+			if (IsBetween(start: ToTime(RTHOpen) + 4000, end: ToTime(RTHClose))) {
+				int rthLengthy =  CurrentBar - rthStartBarNum; 
+				bool Debug = true;
+				if ( rthLengthy> 0 ) {
+					rthHigh = MAX(High, rthLengthy)[1];
+		    		rthLow = MIN(Low, rthLengthy)[1]; 
+					
+					if (DailyHighAlert && High[0] > rthHigh) { 
+						if ( Debug ) { Draw.TriangleUp(this, "newHigh"+CurrentBar, false, 0, High[0], Brushes.LimeGreen); }
+						Alert("newhigh"+CurrentBar, Priority.High, "New High", 
+						NinjaTrader.Core.Globals.InstallDir+@"\sounds\"+ NewHighSound,10, 
+						Brushes.Black, Brushes.Yellow);  
+						if ( Debug ) {  Print("New High " + Time[0].ToShortTimeString());}
+					}
+					
+					if (DailyHighAlert && Low[0] < rthLow) { 
+						if ( Debug ) { Draw.TriangleDown(this, "newHLow"+CurrentBar, false, 0, Low[0], Brushes.Red);}
+						Alert("newHLow"+CurrentBar, Priority.High, "New Low", 
+						NinjaTrader.Core.Globals.InstallDir+@"\sounds\"+ NewLowSound,10, 
+						Brushes.Black, Brushes.Yellow);  
+						if ( Debug ) {  Print("New Low " + Time[0].ToShortTimeString());}
+					}
+				}
 			}
 		}
 		
@@ -273,8 +297,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 		private void BoxConstructor(int BoxLength, double BoxTopPrice, double BottomPrice, string BoxName) {
 			if ( BoxLength < 2 || BoxTopPrice == 0.0 || BottomPrice == 0.0) { return; }
 			if ( BoxLength > MaxGapBoxSize ) { BoxLength = MaxGapBoxSize; }
-			double spacer = TickSize;
-			//Print("BoxLength " + BoxLength + "  BoxTopPrice " + BoxTopPrice + "  BottomPrice " + BottomPrice );
+			double spacer = TickSize; 
 			Brush	BoxColor = GapDown;
 			if ( Gap_D > 0 ) {
 				BoxColor = GapUp;
@@ -297,7 +320,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 				//Print("inside check days "  + "  " + ToTime(Time[0]));
 		        // Get the current DateTime.
 		        DateTime now = DateTime.Now;
-				DateTime startDTE = now.AddDays(-7);
+				DateTime startDTE = now.AddDays(-LoadDaysAgo);
 		        // Get the TimeSpan of the difference.
 		        TimeSpan elapsed = now.Subtract(startDTE);
 		        // Get number of days ago.
@@ -473,7 +496,30 @@ namespace NinjaTrader.NinjaScript.Indicators
 		[Display(Name="Yesterdays POC", Order=15, GroupName="Composite Levels")]
 		public double YesterdaysPOC
 		{ get; set; }
-
+ 
+		[NinjaScriptProperty]
+		[Display(Name="Daily High Alert", Order=16, GroupName="Parameters")]
+		public bool DailyHighAlert
+		{ get; set; }
+		
+		[NinjaScriptProperty]
+		[Display(Name="New High Sound", Order=17, GroupName="Parameters")]
+		public string NewHighSound
+		{ get; set; }
+		
+		[NinjaScriptProperty]
+		[Display(Name="New Low Sound", Order=18, GroupName="Parameters")]
+		public string NewLowSound
+		{ get; set; }
+		
+		[NinjaScriptProperty]
+		[Range(1, int.MaxValue)]
+		[Display(Name="Maximum Days To Load", Order=19, GroupName="Parameters")]
+		public int LoadDaysAgo
+		{ get; set; }
+		
+		//-------------------------------- lines ----------------------------------
+		
 		[Browsable(false)]
 		[XmlIgnore]
 		public Series<double> YHigh
@@ -584,18 +630,18 @@ namespace NinjaTrader.NinjaScript.Indicators
 	public partial class Indicator : NinjaTrader.Gui.NinjaScript.IndicatorRenderBase
 	{
 		private KeyLevels[] cacheKeyLevels;
-		public KeyLevels KeyLevels(Brush lineColor, Brush vAColor, Brush pocColor, Brush gapUp, Brush gapDown, DateTime rTHOpen, DateTime rTHClose, int barsRight, bool showRange, double rangeHighLevel, double rangeLowLevel, double rangePOCLevel, double rangeVAHLevel, double rangeVALLevel, double yesterdaysPOC)
+		public KeyLevels KeyLevels(Brush lineColor, Brush vAColor, Brush pocColor, Brush gapUp, Brush gapDown, DateTime rTHOpen, DateTime rTHClose, int barsRight, bool showRange, double rangeHighLevel, double rangeLowLevel, double rangePOCLevel, double rangeVAHLevel, double rangeVALLevel, double yesterdaysPOC, bool dailyHighAlert, string newHighSound, string newLowSound, int loadDaysAgo)
 		{
-			return KeyLevels(Input, lineColor, vAColor, pocColor, gapUp, gapDown, rTHOpen, rTHClose, barsRight, showRange, rangeHighLevel, rangeLowLevel, rangePOCLevel, rangeVAHLevel, rangeVALLevel, yesterdaysPOC);
+			return KeyLevels(Input, lineColor, vAColor, pocColor, gapUp, gapDown, rTHOpen, rTHClose, barsRight, showRange, rangeHighLevel, rangeLowLevel, rangePOCLevel, rangeVAHLevel, rangeVALLevel, yesterdaysPOC, dailyHighAlert, newHighSound, newLowSound, loadDaysAgo);
 		}
 
-		public KeyLevels KeyLevels(ISeries<double> input, Brush lineColor, Brush vAColor, Brush pocColor, Brush gapUp, Brush gapDown, DateTime rTHOpen, DateTime rTHClose, int barsRight, bool showRange, double rangeHighLevel, double rangeLowLevel, double rangePOCLevel, double rangeVAHLevel, double rangeVALLevel, double yesterdaysPOC)
+		public KeyLevels KeyLevels(ISeries<double> input, Brush lineColor, Brush vAColor, Brush pocColor, Brush gapUp, Brush gapDown, DateTime rTHOpen, DateTime rTHClose, int barsRight, bool showRange, double rangeHighLevel, double rangeLowLevel, double rangePOCLevel, double rangeVAHLevel, double rangeVALLevel, double yesterdaysPOC, bool dailyHighAlert, string newHighSound, string newLowSound, int loadDaysAgo)
 		{
 			if (cacheKeyLevels != null)
 				for (int idx = 0; idx < cacheKeyLevels.Length; idx++)
-					if (cacheKeyLevels[idx] != null && cacheKeyLevels[idx].LineColor == lineColor && cacheKeyLevels[idx].VAColor == vAColor && cacheKeyLevels[idx].PocColor == pocColor && cacheKeyLevels[idx].GapUp == gapUp && cacheKeyLevels[idx].GapDown == gapDown && cacheKeyLevels[idx].RTHOpen == rTHOpen && cacheKeyLevels[idx].RTHClose == rTHClose && cacheKeyLevels[idx].BarsRight == barsRight && cacheKeyLevels[idx].ShowRange == showRange && cacheKeyLevels[idx].RangeHighLevel == rangeHighLevel && cacheKeyLevels[idx].RangeLowLevel == rangeLowLevel && cacheKeyLevels[idx].RangePOCLevel == rangePOCLevel && cacheKeyLevels[idx].RangeVAHLevel == rangeVAHLevel && cacheKeyLevels[idx].RangeVALLevel == rangeVALLevel && cacheKeyLevels[idx].YesterdaysPOC == yesterdaysPOC && cacheKeyLevels[idx].EqualsInput(input))
+					if (cacheKeyLevels[idx] != null && cacheKeyLevels[idx].LineColor == lineColor && cacheKeyLevels[idx].VAColor == vAColor && cacheKeyLevels[idx].PocColor == pocColor && cacheKeyLevels[idx].GapUp == gapUp && cacheKeyLevels[idx].GapDown == gapDown && cacheKeyLevels[idx].RTHOpen == rTHOpen && cacheKeyLevels[idx].RTHClose == rTHClose && cacheKeyLevels[idx].BarsRight == barsRight && cacheKeyLevels[idx].ShowRange == showRange && cacheKeyLevels[idx].RangeHighLevel == rangeHighLevel && cacheKeyLevels[idx].RangeLowLevel == rangeLowLevel && cacheKeyLevels[idx].RangePOCLevel == rangePOCLevel && cacheKeyLevels[idx].RangeVAHLevel == rangeVAHLevel && cacheKeyLevels[idx].RangeVALLevel == rangeVALLevel && cacheKeyLevels[idx].YesterdaysPOC == yesterdaysPOC && cacheKeyLevels[idx].DailyHighAlert == dailyHighAlert && cacheKeyLevels[idx].NewHighSound == newHighSound && cacheKeyLevels[idx].NewLowSound == newLowSound && cacheKeyLevels[idx].LoadDaysAgo == loadDaysAgo && cacheKeyLevels[idx].EqualsInput(input))
 						return cacheKeyLevels[idx];
-			return CacheIndicator<KeyLevels>(new KeyLevels(){ LineColor = lineColor, VAColor = vAColor, PocColor = pocColor, GapUp = gapUp, GapDown = gapDown, RTHOpen = rTHOpen, RTHClose = rTHClose, BarsRight = barsRight, ShowRange = showRange, RangeHighLevel = rangeHighLevel, RangeLowLevel = rangeLowLevel, RangePOCLevel = rangePOCLevel, RangeVAHLevel = rangeVAHLevel, RangeVALLevel = rangeVALLevel, YesterdaysPOC = yesterdaysPOC }, input, ref cacheKeyLevels);
+			return CacheIndicator<KeyLevels>(new KeyLevels(){ LineColor = lineColor, VAColor = vAColor, PocColor = pocColor, GapUp = gapUp, GapDown = gapDown, RTHOpen = rTHOpen, RTHClose = rTHClose, BarsRight = barsRight, ShowRange = showRange, RangeHighLevel = rangeHighLevel, RangeLowLevel = rangeLowLevel, RangePOCLevel = rangePOCLevel, RangeVAHLevel = rangeVAHLevel, RangeVALLevel = rangeVALLevel, YesterdaysPOC = yesterdaysPOC, DailyHighAlert = dailyHighAlert, NewHighSound = newHighSound, NewLowSound = newLowSound, LoadDaysAgo = loadDaysAgo }, input, ref cacheKeyLevels);
 		}
 	}
 }
@@ -604,14 +650,14 @@ namespace NinjaTrader.NinjaScript.MarketAnalyzerColumns
 {
 	public partial class MarketAnalyzerColumn : MarketAnalyzerColumnBase
 	{
-		public Indicators.KeyLevels KeyLevels(Brush lineColor, Brush vAColor, Brush pocColor, Brush gapUp, Brush gapDown, DateTime rTHOpen, DateTime rTHClose, int barsRight, bool showRange, double rangeHighLevel, double rangeLowLevel, double rangePOCLevel, double rangeVAHLevel, double rangeVALLevel, double yesterdaysPOC)
+		public Indicators.KeyLevels KeyLevels(Brush lineColor, Brush vAColor, Brush pocColor, Brush gapUp, Brush gapDown, DateTime rTHOpen, DateTime rTHClose, int barsRight, bool showRange, double rangeHighLevel, double rangeLowLevel, double rangePOCLevel, double rangeVAHLevel, double rangeVALLevel, double yesterdaysPOC, bool dailyHighAlert, string newHighSound, string newLowSound, int loadDaysAgo)
 		{
-			return indicator.KeyLevels(Input, lineColor, vAColor, pocColor, gapUp, gapDown, rTHOpen, rTHClose, barsRight, showRange, rangeHighLevel, rangeLowLevel, rangePOCLevel, rangeVAHLevel, rangeVALLevel, yesterdaysPOC);
+			return indicator.KeyLevels(Input, lineColor, vAColor, pocColor, gapUp, gapDown, rTHOpen, rTHClose, barsRight, showRange, rangeHighLevel, rangeLowLevel, rangePOCLevel, rangeVAHLevel, rangeVALLevel, yesterdaysPOC, dailyHighAlert, newHighSound, newLowSound, loadDaysAgo);
 		}
 
-		public Indicators.KeyLevels KeyLevels(ISeries<double> input , Brush lineColor, Brush vAColor, Brush pocColor, Brush gapUp, Brush gapDown, DateTime rTHOpen, DateTime rTHClose, int barsRight, bool showRange, double rangeHighLevel, double rangeLowLevel, double rangePOCLevel, double rangeVAHLevel, double rangeVALLevel, double yesterdaysPOC)
+		public Indicators.KeyLevels KeyLevels(ISeries<double> input , Brush lineColor, Brush vAColor, Brush pocColor, Brush gapUp, Brush gapDown, DateTime rTHOpen, DateTime rTHClose, int barsRight, bool showRange, double rangeHighLevel, double rangeLowLevel, double rangePOCLevel, double rangeVAHLevel, double rangeVALLevel, double yesterdaysPOC, bool dailyHighAlert, string newHighSound, string newLowSound, int loadDaysAgo)
 		{
-			return indicator.KeyLevels(input, lineColor, vAColor, pocColor, gapUp, gapDown, rTHOpen, rTHClose, barsRight, showRange, rangeHighLevel, rangeLowLevel, rangePOCLevel, rangeVAHLevel, rangeVALLevel, yesterdaysPOC);
+			return indicator.KeyLevels(input, lineColor, vAColor, pocColor, gapUp, gapDown, rTHOpen, rTHClose, barsRight, showRange, rangeHighLevel, rangeLowLevel, rangePOCLevel, rangeVAHLevel, rangeVALLevel, yesterdaysPOC, dailyHighAlert, newHighSound, newLowSound, loadDaysAgo);
 		}
 	}
 }
@@ -620,14 +666,14 @@ namespace NinjaTrader.NinjaScript.Strategies
 {
 	public partial class Strategy : NinjaTrader.Gui.NinjaScript.StrategyRenderBase
 	{
-		public Indicators.KeyLevels KeyLevels(Brush lineColor, Brush vAColor, Brush pocColor, Brush gapUp, Brush gapDown, DateTime rTHOpen, DateTime rTHClose, int barsRight, bool showRange, double rangeHighLevel, double rangeLowLevel, double rangePOCLevel, double rangeVAHLevel, double rangeVALLevel, double yesterdaysPOC)
+		public Indicators.KeyLevels KeyLevels(Brush lineColor, Brush vAColor, Brush pocColor, Brush gapUp, Brush gapDown, DateTime rTHOpen, DateTime rTHClose, int barsRight, bool showRange, double rangeHighLevel, double rangeLowLevel, double rangePOCLevel, double rangeVAHLevel, double rangeVALLevel, double yesterdaysPOC, bool dailyHighAlert, string newHighSound, string newLowSound, int loadDaysAgo)
 		{
-			return indicator.KeyLevels(Input, lineColor, vAColor, pocColor, gapUp, gapDown, rTHOpen, rTHClose, barsRight, showRange, rangeHighLevel, rangeLowLevel, rangePOCLevel, rangeVAHLevel, rangeVALLevel, yesterdaysPOC);
+			return indicator.KeyLevels(Input, lineColor, vAColor, pocColor, gapUp, gapDown, rTHOpen, rTHClose, barsRight, showRange, rangeHighLevel, rangeLowLevel, rangePOCLevel, rangeVAHLevel, rangeVALLevel, yesterdaysPOC, dailyHighAlert, newHighSound, newLowSound, loadDaysAgo);
 		}
 
-		public Indicators.KeyLevels KeyLevels(ISeries<double> input , Brush lineColor, Brush vAColor, Brush pocColor, Brush gapUp, Brush gapDown, DateTime rTHOpen, DateTime rTHClose, int barsRight, bool showRange, double rangeHighLevel, double rangeLowLevel, double rangePOCLevel, double rangeVAHLevel, double rangeVALLevel, double yesterdaysPOC)
+		public Indicators.KeyLevels KeyLevels(ISeries<double> input , Brush lineColor, Brush vAColor, Brush pocColor, Brush gapUp, Brush gapDown, DateTime rTHOpen, DateTime rTHClose, int barsRight, bool showRange, double rangeHighLevel, double rangeLowLevel, double rangePOCLevel, double rangeVAHLevel, double rangeVALLevel, double yesterdaysPOC, bool dailyHighAlert, string newHighSound, string newLowSound, int loadDaysAgo)
 		{
-			return indicator.KeyLevels(input, lineColor, vAColor, pocColor, gapUp, gapDown, rTHOpen, rTHClose, barsRight, showRange, rangeHighLevel, rangeLowLevel, rangePOCLevel, rangeVAHLevel, rangeVALLevel, yesterdaysPOC);
+			return indicator.KeyLevels(input, lineColor, vAColor, pocColor, gapUp, gapDown, rTHOpen, rTHClose, barsRight, showRange, rangeHighLevel, rangeLowLevel, rangePOCLevel, rangeVAHLevel, rangeVALLevel, yesterdaysPOC, dailyHighAlert, newHighSound, newLowSound, loadDaysAgo);
 		}
 	}
 }

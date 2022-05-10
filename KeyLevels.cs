@@ -92,7 +92,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 				DailyHighAlert 					= true;
 				NewHighSound 					= "NewHigh";
 				NewLowSound 					= "NewLow";
-				LoadDaysAgo						= 3;
+				LoadDaysAgo						= 2;
 				
 				AddPlot(LineColor, "YHigh");
 				AddPlot(LineColor, "YLow");
@@ -513,7 +513,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 		{ get; set; }
 		
 		[NinjaScriptProperty]
-		[Range(1, int.MaxValue)]
+		[Range(2, int.MaxValue)]
 		[Display(Name="Maximum Days To Load", Order=19, GroupName="Parameters")]
 		public int LoadDaysAgo
 		{ get; set; }
